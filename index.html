@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Litosfer Interaktif - Media Ajar Geografi SMA</title>
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f8ff; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); }
+        .module-content { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- KONFIGURASI PUSAT ---
+        const CONFIG = {
+            appName: "LITOSFER INTERAKTIF",
+            appFullName: "Media Ajar Interaktif Geografi SMA",
+            subject: "Geografi",
+            grade: "X",
+            phase: "E",
+            mainMaterial: "Litosfer",
+            subMaterial: "Lapisan-Lapisan Bumi",
+            developer: "Sri Rauzati, S.Pd.",
+            totalQuestions: 20
+        };
+
+        // --- DATA MATERI (Disederhanakan untuk frontend, idealnya dimuat dari GAS) ---
+        const MODULES = [
+            { id: 1, title: "Mengenal Bumi", content: "Bumi adalah planet ketiga dalam tata surya. Secara struktur, bumi tidak homogen melainkan terdiri dari lapisan-lapisan yang berbeda komposisi dan sifat fisiknya. Mempelajari bagian dalam bumi penting untuk memahami fenomena permukaan seperti gempa bumi dan gunung berapi." },
+            { id: 2, title: "Kerak Bumi", content: "Kerak bumi adalah lapisan terluar bumi. Terbagi dua: Kerak Benua (tebal, kaya Silisium-Aluminium/granit) dan Kerak Samudra (tipis, kaya Silisium-Magnesium/basal). Lapisan ini sangat penting karena menyediakan sumber daya alam dan tempat hidup manusia." },
+            { id: 3, title: "Mantel Bumi", content: "Berada di bawah kerak, menyusun lebih dari 80% volume bumi. Tersusun dari batuan padat yang kaya besi dan magnesium. Bagian atasnya (astenosfer) bersifat plastis dan dapat mengalir sangat lambat, memungkinkan terjadinya arus konveksi yang menggerakkan lempeng tektonik." },
+            { id: 4, title: "Inti Luar Bumi", content: "Lapisan cair yang terletak di bawah mantel, tersusun terutama dari paduan besi dan nikel cair. Pergerakan cairan logam di lapisan ini akibat rotasi bumi menghasilkan medan magnet bumi yang melindungi kita dari radiasi matahari." },
+            { id: 5, title: "Inti Dalam Bumi", content: "Pusat bumi. Meskipun suhunya sangat tinggi (bisa mencapai 5400°C), inti dalam berwujud padat. Hal ini disebabkan oleh tekanan ekstrem di kedalaman ini yang mencegah logam besi dan nikel mencair." },
+            { id: 6, title: "Perbandingan Lapisan", content: "1. Kerak: Kedalaman 0-70 km, Padat, Granit/Basal.\n2. Mantel: 70-2890 km, Padat/Plastis, Silikat.\n3. Inti Luar: 2890-5150 km, Cair, Besi & Nikel.\n4. Inti Dalam: 5150-6371 km, Padat, Besi & Nikel." },
+            { id: 7, title: "Rangkuman & Persiapan", content: "Bumi terdiri dari Kerak (padat, terluar), Mantel (padat/mengalir lambat, konveksi), Inti Luar (cair, medan magnet), dan Inti Dalam (padat, tekanan tinggi). Siapkan diri Anda untuk evaluasi akhir. Evaluasi ini terdiri dari 20 soal pilihan ganda." }
+        ];
+
+        const EVAL_QUESTIONS = [
+            { id: 1, q: "Lapisan terluar bumi yang menjadi tempat tinggal makhluk hidup disebut...", options: ["A. Mantel", "B. Astenosfer", "C. Kerak Bumi", "D. Inti Luar", "E. Barisfer"] },
+            { id: 2, q: "Kerak benua pada umumnya tersusun atas batuan yang kaya akan unsur...", options: ["A. Silisium dan Magnesium", "B. Silisium dan Aluminium", "C. Besi dan Nikel", "D. Magnesium dan Besi", "E. Nikel dan Kobalt"] },
+            { id: 3, q: "Lapisan bumi yang paling tebal dan menyusun sebagian besar volume bumi adalah...", options: ["A. Kerak benua", "B. Kerak samudra", "C. Mantel bumi", "D. Inti luar", "E. Inti dalam"] },
+            { id: 4, q: "Arus konveksi yang menjadi tenaga penggerak lempeng tektonik terjadi di lapisan...", options: ["A. Kerak bumi", "B. Astenosfer (Mantel)", "C. Inti luar", "D. Inti dalam", "E. Litosfer atas"] },
+            { id: 5, q: "Pernyataan yang tepat mengenai inti luar bumi adalah...", options: ["A. Berwujud padat karena tekanan tinggi", "B. Berwujud cair dan menghasilkan medan magnet", "C. Tersusun utama dari batuan silikat", "D. Merupakan lapisan paling dingin", "E. Tempat terjadinya pergerakan lempeng"] },
+            { id: 6, q: "Inti dalam bumi tetap berada dalam wujud padat meskipun suhunya sangat tinggi. Hal ini disebabkan oleh...", options: ["A. Kandungan air yang tinggi", "B. Jaraknya yang jauh dari matahari", "C. Tekanan yang sangat tinggi", "D. Pengaruh medan magnet", "E. Arus konveksi yang mendinginkan"] },
+            { id: 7, q: "Batas yang memisahkan antara kerak bumi dan mantel bumi dikenal dengan nama...", options: ["A. Diskontinuitas Gutenberg", "B. Diskontinuitas Moho", "C. Diskontinuitas Lehmann", "D. Zona Subduksi", "E. Pematang Tengah Samudra"] },
+            { id: 8, q: "Berdasarkan sifat fisiknya, litosfer terdiri atas...", options: ["A. Kerak bumi saja", "B. Mantel atas dan mantel bawah", "C. Kerak bumi dan sebagian mantel atas yang padat", "D. Seluruh bagian mantel", "E. Inti luar dan inti dalam"] },
+            { id: 9, q: "Unsur kimia penyusun utama inti bumi (baik luar maupun dalam) adalah...", options: ["A. Silikon dan Aluminium", "B. Besi dan Nikel", "C. Oksigen dan Silikon", "D. Magnesium dan Besi", "E. Tembaga dan Emas"] },
+            { id: 10, q: "Di antara lapisan berikut, manakah yang memiliki massa jenis paling besar?", options: ["A. Kerak samudra", "B. Kerak benua", "C. Mantel bumi", "D. Inti luar", "E. Inti dalam"] },
+            { id: 11, q: "Batuan basal berwarna gelap dan memiliki massa jenis lebih besar dibandingkan granit. Batuan ini dominan menyusun...", options: ["A. Inti bumi", "B. Mantel atas", "C. Kerak benua", "D. Kerak samudra", "E. Astenosfer"] },
+            { id: 12, q: "Ilmu yang mempelajari gempa bumi dan gelombang seismik untuk mengetahui struktur dalam bumi disebut...", options: ["A. Geografi", "B. Geologi", "C. Seismologi", "D. Meteorologi", "E. Klimatologi"] },
+            { id: 13, q: "Medan magnet bumi sangat penting bagi kehidupan karena...", options: ["A. Mengatur iklim bumi", "B. Mencegah radiasi angin matahari masuk ke bumi", "C. Menyebabkan terjadinya gempa", "D. Menghasilkan bahan tambang", "E. Menjaga lautan tetap cair"] },
+            { id: 14, q: "Suhu rata-rata inti dalam bumi diperkirakan mendekati atau sama dengan suhu di...", options: ["A. Permukaan matahari", "B. Permukaan bulan", "C. Pusat galaksi", "D. Gunung berapi terpanas", "E. Mantel atas"] },
+            { id: 15, q: "Apa yang terjadi pada suhu dan tekanan semakin dalam kita masuk ke perut bumi?", options: ["A. Suhu turun, tekanan naik", "B. Suhu naik, tekanan turun", "C. Suhu dan tekanan menurun", "D. Suhu dan tekanan meningkat", "E. Suhu tetap, tekanan meningkat"] },
+            { id: 16, q: "Material mantel bumi sebagian besar berupa...", options: ["A. Magma cair 100%", "B. Air tanah", "C. Batuan padat yang bisa berdeformasi lambat", "D. Besi dan nikel padat", "E. Gas panas"] },
+            { id: 17, q: "Diskontinuitas Gutenberg adalah batas antara...", options: ["A. Kerak benua dan kerak samudra", "B. Kerak dan mantel", "C. Mantel dan inti luar", "D. Inti luar dan inti dalam", "E. Litosfer dan astenosfer"] },
+            { id: 18, q: "Secara etimologi, litosfer berasal dari kata 'lithos' yang berarti...", options: ["A. Air", "B. Udara", "C. Batu", "D. Api", "E. Kehidupan"] },
+            { id: 19, q: "Ketebalan kerak bumi rata-rata paling tipis ditemukan di wilayah...", options: ["A. Pegunungan Himalaya", "B. Daratan Eropa", "C. Dasar Samudra", "D. Gurun Sahara", "E. Kutub Utara"] },
+            { id: 20, q: "Mengapa inti luar cair sementara inti dalam padat meskipun keduanya bersuhu sangat tinggi?", options: ["A. Inti dalam memiliki lebih banyak silika", "B. Titik leleh besi di inti dalam naik drastis karena tekanan", "C. Inti luar mendingin lebih cepat", "D. Pengaruh gaya gravitasi bulan", "E. Arus konveksi membekukan inti dalam"] }
+        ];
+
+        // --- MAIN APP COMPONENT ---
+        const App = () => {
+            const [gasUrl, setGasUrl] = useState(localStorage.getItem('gas_url') || '');
+            const [view, setView] = useState('home'); // home, setup, student_login, teacher_login, student_dashboard, module, evaluation, teacher_dashboard
+            const [user, setUser] = useState(null);
+            const [progress, setProgress] = useState(1);
+            const [loading, setLoading] = useState(false);
+            const [error, setError] = useState('');
+
+            // API Helper Function
+            const apiCall = async (action, data) => {
+                if (!gasUrl) {
+                    throw new Error("URL Google Apps Script belum dikonfigurasi.");
+                }
+                const url = `${gasUrl}?action=${action}`;
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Menggunakan text/plain menghindari CORS preflight issues
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.status === 'error') throw new Error(result.message);
+                return result.data;
+            };
+
+            // Simulating API for demonstration if GAS isn't set up yet
+            const mockApiCall = async (action, data) => {
+                return new Promise((resolve, reject) => {
+                    setTimeout(() => {
+                        if (action === 'student_login') {
+                            resolve({ user_id: data.nisn, nama: data.nama, nisn: data.nisn, role: 'siswa', progress: parseInt(localStorage.getItem(`prog_${data.nisn}`) || 1) });
+                        } else if (action === 'teacher_login') {
+                            if (data.password === 'guru123') resolve({ role: 'guru', nama: 'Sri Rauzati, S.Pd.' });
+                            else reject(new Error('Kredensial salah (Gunakan: guru123)'));
+                        } else if (action === 'update_progress') {
+                            localStorage.setItem(`prog_${data.nisn}`, data.module_id);
+                            resolve({ success: true });
+                        } else if (action === 'submit_eval') {
+                            const hasDone = localStorage.getItem(`eval_${data.nisn}`);
+                            if (hasDone) reject(new Error('Anda sudah pernah mengirimkan evaluasi.'));
+                            let score = data.answers.filter(a => a.correct).length * 5;
+                            localStorage.setItem(`eval_${data.nisn}`, JSON.stringify({ score, time: new Date().toISOString() }));
+                            resolve({ score, total: 100, correct: score/5, wrong: 20-(score/5) });
+                        } else if (action === 'get_teacher_data') {
+                            resolve({ 
+                                students: [
+                                    { nama: 'Siswa A', nisn: '1234567890', progress: 7, score: 85, status: 'Selesai' },
+                                    { nama: 'Siswa B', nisn: '0987654321', progress: 3, score: '-', status: 'Belum Evaluasi' }
+                                ], 
+                                stats: { total: 2, completed: 1, avgScore: 85 } 
+                            });
+                        }
+                    }, 800);
+                });
+            };
+
+            const request = gasUrl.startsWith('http') ? apiCall : mockApiCall;
+
+            const handleStudentLogin = async (e) => {
+                e.preventDefault();
+                setLoading(true); setError('');
+                const nama = e.target.nama.value;
+                const nisn = e.target.nisn.value;
+                
+                if (nisn.length < 9) {
+                    setError('NISN tidak valid.'); setLoading(false); return;
+                }
+
+                try {
+                    const data = await request('student_login', { nama, nisn });
+                    setUser(data);
+                    setProgress(data.progress);
+                    setView('student_dashboard');
+                } catch (err) {
+                    setError(err.message);
+                }
+                setLoading(false);
+            };
+
+            const logout = () => {
+                setUser(null);
+                setView('home');
+            };
+
+            // VIEWS
+            const HomeView = () => (
+                <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 to-blue-700 text-white p-4">
+                    <div className="glass-card bg-white text-gray-800 p-8 max-w-2xl w-full text-center space-y-6">
+                        <div className="flex justify-center mb-4 text-blue-600">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-bold text-blue-900">{CONFIG.appName}</h1>
+                        <h2 className="text-lg text-gray-600 font-semibold">{CONFIG.appFullName}</h2>
+                        <p className="text-gray-700">Pelajari materi {CONFIG.mainMaterial}: {CONFIG.subMaterial} dengan interaktif dan terstruktur.</p>
+                        
+                        <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg text-left text-sm">
+                            <strong>Capaian Pembelajaran:</strong> Siswa mampu mendeskripsikan lapisan-lapisan Bumi.
+                        </div>
+
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+                            <button onClick={() => setView('student_login')} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold transition shadow-lg">Mulai Belajar (Siswa)</button>
+                            <button onClick={() => setView('teacher_login')} className="px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-lg font-bold transition shadow-lg">Login Guru</button>
+                        </div>
+                        
+                        {!gasUrl && (
+                            <button onClick={() => setView('setup')} className="text-xs text-red-500 underline mt-4">Simulasi Lokal Aktif. Klik untuk Set URL Database (GAS).</button>
+                        )}
+                    </div>
+                </div>
+            );
+
+            const StudentDashboard = () => (
+                <div className="max-w-4xl mx-auto p-4 py-8">
+                    <div className="flex justify-between items-center mb-8 bg-white p-4 rounded-xl shadow">
+                        <div>
+                            <h2 className="text-xl font-bold text-blue-900">Halo, {user?.nama}</h2>
+                            <p className="text-sm text-gray-600">NISN: {user?.nisn}</p>
+                        </div>
+                        <button onClick={logout} className="text-red-500 font-semibold hover:underline">Keluar</button>
+                    </div>
+
+                    <div className="mb-6">
+                        <h3 className="font-bold text-gray-700 mb-2">Progres Belajar Anda</h3>
+                        <div className="w-full bg-gray-200 rounded-full h-4">
+                            <div className="bg-green-500 h-4 rounded-full transition-all duration-500" style={{width: `${((progress-1)/7)*100}%`}}></div>
+                        </div>
+                        <p className="text-right text-xs mt-1 text-gray-500">{Math.round(((progress-1)/7)*100)}% Selesai</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {MODULES.map((mod, idx) => {
+                            const isLocked = mod.id > progress;
+                            const isCompleted = mod.id < progress;
+                            
+                            return (
+                                <div key={mod.id} className={`p-5 rounded-xl border-2 ${isLocked ? 'border-gray-200 bg-gray-50 opacity-60' : isCompleted ? 'border-green-400 bg-green-50' : 'border-blue-500 bg-white shadow-md'}`}>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="font-bold text-gray-800">Modul {mod.id}: {mod.title}</h4>
+                                        {isLocked ? <span className="text-gray-400">🔒 Terkunci</span> : 
+                                         isCompleted ? <span className="text-green-600 font-bold">✓ Selesai</span> : 
+                                         <span className="text-blue-600 font-bold">▶ Aktif</span>}
+                                    </div>
+                                    <button 
+                                        disabled={isLocked}
+                                        onClick={() => { setCurrentModule(mod.id); setView('module'); }}
+                                        className={`mt-4 w-full py-2 rounded font-semibold ${isLocked ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                                    >
+                                        {isLocked ? 'Selesaikan Modul Sebelumnya' : isCompleted ? 'Buka Kembali' : 'Mulai Belajar'}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                        
+                        <div className={`p-5 rounded-xl border-2 md:col-span-2 ${progress <= MODULES.length ? 'border-gray-200 bg-gray-50 opacity-60' : 'border-amber-400 bg-amber-50 shadow-md'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="font-bold text-gray-800">Evaluasi Akhir</h4>
+                                {progress <= MODULES.length ? <span className="text-gray-400">🔒 Terkunci</span> : <span className="text-amber-600 font-bold">★ Terbuka</span>}
+                            </div>
+                            <p className="text-sm text-gray-600 mb-4">Uji pemahaman Anda dengan 20 soal pilihan ganda. Evaluasi hanya dapat dilakukan 1 kali.</p>
+                            <button 
+                                disabled={progress <= MODULES.length}
+                                onClick={() => setView('evaluation')}
+                                className={`w-full py-3 rounded font-bold ${progress <= MODULES.length ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-amber-500 text-white hover:bg-amber-600 shadow-lg'}`}
+                            >
+                                Mulai Evaluasi
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            const [currentModule, setCurrentModule] = useState(1);
+            
+            const ModuleViewer = () => {
+                const mod = MODULES.find(m => m.id === currentModule);
+                
+                const handleComplete = async () => {
+                    if (progress === currentModule) {
+                        try {
+                            setLoading(true);
+                            await request('update_progress', { nisn: user.nisn, module_id: currentModule + 1 });
+                            setProgress(currentModule + 1);
+                        } catch (err) {
+                            alert("Gagal menyimpan progres: " + err.message);
+                        } finally {
+                            setLoading(false);
+                        }
+                    }
+                    setView('student_dashboard');
+                };
+
+                return (
+                    <div className="max-w-3xl mx-auto p-4 py-8 module-content">
+                        <button onClick={() => setView('student_dashboard')} className="text-blue-600 hover:underline mb-4 font-semibold">← Kembali ke Dashboard</button>
+                        <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-blue-600">
+                            <h2 className="text-2xl font-bold text-blue-900 mb-4">Modul {mod.id}: {mod.title}</h2>
+                            <div className="prose max-w-none text-gray-700 whitespace-pre-wrap leading-relaxed">
+                                {mod.content}
+                            </div>
+                            
+                            <div className="mt-8 pt-6 border-t border-gray-200">
+                                <button 
+                                    onClick={handleComplete}
+                                    disabled={loading}
+                                    className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-lg shadow transition"
+                                >
+                                    {loading ? 'Menyimpan...' : (progress === currentModule ? 'Selesai & Lanjut' : 'Tutup Modul')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            const EvaluationViewer = () => {
+                const [answers, setAnswers] = useState({});
+                const [isSubmitting, setIsSubmitting] = useState(false);
+                const [result, setResult] = useState(null);
+
+                const handleAnswer = (qId, optionIdx) => {
+                    setAnswers(prev => ({ ...prev, [qId]: optionIdx }));
+                };
+
+                const submitEval = async () => {
+                    if (Object.keys(answers).length < 20) {
+                        if (!confirm('Anda belum menjawab semua soal. Yakin ingin mengirim?')) return;
+                    } else {
+                        if (!confirm('Pastikan jawaban Anda sudah benar. Kirim sekarang?')) return;
+                    }
+
+                    setIsSubmitting(true);
+                    try {
+                        const payload = EVAL_QUESTIONS.map(q => ({
+                            id: q.id,
+                            answered: answers[q.id] !== undefined ? q.options[answers[q.id]].charAt(0) : null,
+                            correct: answers[q.id] !== undefined ? q.options[answers[q.id]].charAt(0) === (
+                                // Logic kunci jawaban dummy - di sistem nyata kunci di server
+                                ['C','B','C','B','B','C','B','C','B','E','D','C','B','A','D','C','C','C','C','B'][q.id-1]
+                            ) : false
+                        }));
+                        
+                        const res = await request('submit_eval', { nisn: user.nisn, answers: payload });
+                        setResult(res);
+                    } catch (err) {
+                        alert("Gagal mengirim: " + err.message);
+                    }
+                    setIsSubmitting(false);
+                };
+
+                if (result) {
+                    return (
+                        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+                            <div className="bg-white p-8 rounded-xl shadow-xl max-w-md w-full text-center">
+                                <h2 className="text-3xl font-bold text-blue-900 mb-2">Evaluasi Selesai!</h2>
+                                <p className="text-gray-600 mb-6">{user.nama} ({user.nisn})</p>
+                                <div className="text-6xl font-bold text-green-500 mb-4">{result.score}</div>
+                                <p className="text-gray-700 font-semibold mb-6">Benar: {result.correct} | Salah: {result.wrong}</p>
+                                <button onClick={() => setView('student_dashboard')} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded">Kembali ke Beranda</button>
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div className="max-w-4xl mx-auto p-4 py-8">
+                        <div className="flex justify-between items-center mb-6 bg-white p-4 rounded shadow sticky top-0 z-10">
+                            <h2 className="font-bold text-lg">Evaluasi Akhir</h2>
+                            <div className="font-bold text-blue-600">Terjawab: {Object.keys(answers).length}/20</div>
+                        </div>
+                        
+                        <div className="space-y-6">
+                            {EVAL_QUESTIONS.map((q, idx) => (
+                                <div key={q.id} className="bg-white p-6 rounded-lg shadow">
+                                    <p className="font-semibold text-gray-800 mb-4">{idx + 1}. {q.q}</p>
+                                    <div className="space-y-2">
+                                        {q.options.map((opt, optIdx) => (
+                                            <label key={optIdx} className={`block p-3 border rounded cursor-pointer transition ${answers[q.id] === optIdx ? 'bg-blue-100 border-blue-500' : 'hover:bg-gray-50 border-gray-200'}`}>
+                                                <input type="radio" name={`q_${q.id}`} className="hidden" checked={answers[q.id] === optIdx} onChange={() => handleAnswer(q.id, optIdx)} />
+                                                {opt}
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="mt-8 text-center bg-white p-6 rounded shadow">
+                            <button onClick={submitEval} disabled={isSubmitting} className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-12 rounded-lg shadow-lg text-lg">
+                                {isSubmitting ? 'Mengirim Data...' : 'Kirim Jawaban'}
+                            </button>
+                            <p className="text-sm text-gray-500 mt-2">Pastikan internet Anda stabil. Evaluasi tidak dapat diulang.</p>
+                        </div>
+                    </div>
+                );
+            };
+
+            const TeacherDashboard = () => {
+                const [data, setData] = useState(null);
+
+                useEffect(() => {
+                    request('get_teacher_data', {}).then(setData).catch(e => alert(e.message));
+                }, []);
+
+                if (!data) return <div className="text-center p-12">Memuat data...</div>;
+
+                return (
+                    <div className="max-w-6xl mx-auto p-4 py-8">
+                        <div className="flex justify-between items-center mb-8">
+                            <h2 className="text-2xl font-bold text-teal-800">Dashboard Guru</h2>
+                            <button onClick={logout} className="bg-red-500 text-white px-4 py-2 rounded">Keluar</button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                            <div className="bg-white p-6 rounded-xl shadow border-l-4 border-blue-500">
+                                <p className="text-sm text-gray-500 font-bold uppercase">Total Siswa</p>
+                                <p className="text-3xl font-bold">{data.stats.total}</p>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow border-l-4 border-green-500">
+                                <p className="text-sm text-gray-500 font-bold uppercase">Selesai Evaluasi</p>
+                                <p className="text-3xl font-bold">{data.stats.completed}</p>
+                            </div>
+                            <div className="bg-white p-6 rounded-xl shadow border-l-4 border-amber-500">
+                                <p className="text-sm text-gray-500 font-bold uppercase">Rata-Rata Nilai</p>
+                                <p className="text-3xl font-bold">{data.stats.avgScore || '-'}</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-xl shadow overflow-hidden">
+                            <div className="p-4 border-b bg-gray-50 flex justify-between">
+                                <h3 className="font-bold">Rekap Siswa</h3>
+                                <button className="text-sm bg-teal-600 text-white px-3 py-1 rounded">Export CSV</button>
+                            </div>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left">
+                                    <thead className="bg-gray-100 text-gray-600">
+                                        <tr>
+                                            <th className="p-4">Nama</th>
+                                            <th className="p-4">NISN</th>
+                                            <th className="p-4">Progres Modul</th>
+                                            <th className="p-4">Status Evaluasi</th>
+                                            <th className="p-4">Nilai</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {data.students.map((s, i) => (
+                                            <tr key={i} className="border-b hover:bg-gray-50">
+                                                <td className="p-4 font-semibold">{s.nama}</td>
+                                                <td className="p-4">{s.nisn}</td>
+                                                <td className="p-4">{s.progress}/7 Selesai</td>
+                                                <td className="p-4">
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold ${s.status === 'Selesai' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                        {s.status}
+                                                    </span>
+                                                </td>
+                                                <td className="p-4 font-bold">{s.score}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                );
+            };
+
+            // Main Render Logic
+            return (
+                <div className="min-h-screen flex flex-col">
+                    <main className="flex-grow">
+                        {view === 'home' && <HomeView />}
+                        {view === 'setup' && (
+                            <div className="p-8 max-w-md mx-auto mt-20 bg-white rounded shadow text-center">
+                                <h2 className="font-bold mb-4">Pengaturan Endpoint Server (GAS)</h2>
+                                <input type="text" placeholder="https://script.google.com/macros/s/..." 
+                                    className="w-full border p-2 mb-4 rounded"
+                                    value={gasUrl} onChange={e => setGasUrl(e.target.value)} />
+                                <button onClick={() => { localStorage.setItem('gas_url', gasUrl); setView('home'); }} className="bg-blue-600 text-white px-4 py-2 rounded">Simpan Konfigurasi</button>
+                            </div>
+                        )}
+                        
+                        {view === 'student_login' && (
+                            <div className="min-h-screen flex items-center justify-center p-4">
+                                <form onSubmit={handleStudentLogin} className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+                                    <h2 className="text-2xl font-bold text-blue-900 mb-6 text-center">Masuk Siswa</h2>
+                                    {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-bold mb-2">Nama Lengkap</label>
+                                        <input type="text" name="nama" required className="w-full border-2 border-gray-200 p-3 rounded outline-none focus:border-blue-500" placeholder="Contoh: Budi Santoso"/>
+                                    </div>
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-bold mb-2">NISN</label>
+                                        <input type="number" name="nisn" required className="w-full border-2 border-gray-200 p-3 rounded outline-none focus:border-blue-500" placeholder="Masukkan 10 digit NISN"/>
+                                    </div>
+                                    <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-blue-700">{loading ? 'Memproses...' : 'Masuk / Daftar'}</button>
+                                    <button type="button" onClick={() => setView('home')} className="w-full mt-4 text-gray-500 font-semibold hover:underline">Kembali</button>
+                                </form>
+                            </div>
+                        )}
+
+                        {view === 'teacher_login' && (
+                            <div className="min-h-screen flex items-center justify-center p-4">
+                                <form onSubmit={async (e) => {
+                                    e.preventDefault(); setLoading(true); setError('');
+                                    try {
+                                        const data = await request('teacher_login', { password: e.target.password.value });
+                                        setUser(data); setView('teacher_dashboard');
+                                    } catch (err) { setError(err.message); }
+                                    setLoading(false);
+                                }} className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md">
+                                    <h2 className="text-2xl font-bold text-teal-800 mb-6 text-center">Masuk Guru</h2>
+                                    {error && <div className="bg-red-100 text-red-700 p-3 rounded mb-4 text-sm">{error}</div>}
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-bold mb-2">Kata Sandi</label>
+                                        <input type="password" name="password" required className="w-full border-2 border-gray-200 p-3 rounded outline-none focus:border-teal-500"/>
+                                    </div>
+                                    <button type="submit" disabled={loading} className="w-full bg-teal-600 text-white font-bold py-3 rounded-lg shadow-lg hover:bg-teal-700">Masuk</button>
+                                    <button type="button" onClick={() => setView('home')} className="w-full mt-4 text-gray-500 font-semibold hover:underline">Kembali</button>
+                                </form>
+                            </div>
+                        )}
+
+                        {view === 'student_dashboard' && <StudentDashboard />}
+                        {view === 'module' && <ModuleViewer />}
+                        {view === 'evaluation' && <EvaluationViewer />}
+                        {view === 'teacher_dashboard' && <TeacherDashboard />}
+                    </main>
+
+                    <footer className="bg-blue-900 text-white text-center py-4 text-sm mt-auto">
+                        <p>Dikembangkan oleh <strong>{CONFIG.developer}</strong></p>
+                        <p className="text-xs text-blue-300 mt-1">{CONFIG.appName} &copy; 2026</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
